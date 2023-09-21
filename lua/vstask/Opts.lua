@@ -11,10 +11,15 @@ M.get_size = function(current, opts)
     if opts.horizontal ~= nil and opts.horizontal.size ~= nil then
       return opts.horizontal.size
     end
+  elseif current == 'current'
+  then
+    if opts.current ~= nil and opts.current.size ~= nil then
+      return opts.current.size
+    end
   end
 end
 
-M.get_direction = function (current, opts)
+M.get_direction = function(current, opts)
   if current == 'vertical'
   then
     if opts.vertical ~= nil and opts.vertical.direction ~= nil then
