@@ -1,12 +1,12 @@
-local actions = require('telescope.actions')
-local state  = require('telescope.actions.state')
-local finders = require('telescope.finders')
-local pickers = require('telescope.pickers')
-local sorters = require('telescope.sorters')
-local Parse = require('vstask.Parse')
-local Opts = require('vstask.Opts')
+local actions         = require('telescope.actions')
+local state           = require('telescope.actions.state')
+local finders         = require('telescope.finders')
+local pickers         = require('telescope.pickers')
+local sorters         = require('telescope.sorters')
+local Parse           = require('vstask.Parse')
+local Opts            = require('vstask.Opts')
 local Command_handler = nil
-local Mappings = {
+local Mappings        = {
   vertical = '<C-v>',
   split = '<C-p>',
   tab = '<C-t>',
@@ -32,7 +32,7 @@ local last_cmd = nil
 local Term_opts = {}
 
 local function set_term_opts(new_opts)
-    Term_opts= new_opts
+  Term_opts = new_opts
 end
 
 local function get_last()
@@ -42,11 +42,14 @@ end
 local function format_command(pre, options)
   local command = pre
   if nil ~= options then
-      local cwd = options["cwd"]
-      if nil ~= cwd then
-          local cd_command = string.format("cd %s", cwd)
-          command = string.format("%s && %s", cd_command, command)
-      end
+    local cwd = options["cwd"]
+    if nil ~= cwd then
+      local cd_command = string.format("cd %s", cwd)
+      command = string.format("%s && %s", cd_command, command)
+    end
+  end
+  for k, v in pairs(options) do
+    options[k] = Parse.replace(v)
   end
   command = Parse.replace(command)
   return {
@@ -88,7 +91,7 @@ local process_command = function(command, direction, opts)
 
     if command_map[opt_direction] ~= nil then
       vim.cmd(command_map[opt_direction].command)
-      if command_map[opt_direction].size ~= nil  and size ~= nil then
+      if command_map[opt_direction].size ~= nil and size ~= nil then
         vim.cmd(command_map[opt_direction].size .. size)
       end
     end
@@ -111,13 +114,13 @@ local function inputs(opts)
     return
   end
 
-  local  inputs_formatted = {}
+  local inputs_formatted = {}
   local selection_list = {}
 
   for _, input_dict in pairs(input_list) do
     local add_current = ""
     if input_dict["value"] ~= "" then
-        add_current = " [" .. input_dict["value"] .. "] "
+      add_current = " [" .. input_dict["value"] .. "] "
     end
     local current_task = input_dict["id"] .. add_current .. " => " .. input_dict["description"]
     table.insert(inputs_formatted, current_task)
@@ -125,13 +128,12 @@ local function inputs(opts)
   end
 
   pickers.new(opts, {
-    prompt_title = 'Inputs',
-    finder    = finders.new_table {
+    prompt_title    = 'Inputs',
+    finder          = finders.new_table {
       results = inputs_formatted
     },
-    sorter = sorters.get_generic_fuzzy_sorter(),
+    sorter          = sorters.get_generic_fuzzy_sorter(),
     attach_mappings = function(prompt_bufnr, map)
-
       local start_task = function()
         local selection = state.get_selected_entry(prompt_bufnr)
         actions.close(prompt_bufnr)
@@ -157,6 +159,10 @@ local function start_launch_direction(direction, prompt_bufnr, _, selection_list
   local options = selection_list[selection.index]["options"]
   local label = selection_list[selection.index]["name"]
   local args = selection_list[selection.index]["args"]
+  for i, element in ipairs(args) do
+    args[i] = Parse.replace(element)
+  end
+
   Parse.Used_launch(label)
   local formatted_command = format_command(command, options)
   local built = Parse.Build_launch(formatted_command.command, args)
@@ -171,9 +177,12 @@ local function start_task_direction(direction, promp_bufnr, _, selection_list)
   local options = selection_list[selection.index]["options"]
   local label = selection_list[selection.index]["label"]
   local args = selection_list[selection.index]["args"]
+  for i, element in ipairs(args) do
+    args[i] = Parse.replace(element)
+  end
   set_history(label, command, options)
   local formatted_command = format_command(command, options)
-  if(args ~= nil) then
+  if (args ~= nil) then
     formatted_command.command = Parse.Build_launch(formatted_command.command, args)
   end
   process_command(formatted_command.command, direction, Term_opts)
@@ -191,7 +200,7 @@ local function history(opts)
   table.sort(sorted_history, function(a, b) return a.hits > b.hits end)
 
   -- build label table
-  local  labels = {}
+  local labels = {}
   for i = 1, #sorted_history do
     local current_task = sorted_history[i]["label"]
     table.insert(labels, current_task)
@@ -199,11 +208,11 @@ local function history(opts)
 
 
   pickers.new(opts, {
-    prompt_title = 'Task History',
-    finder    = finders.new_table {
+    prompt_title    = 'Task History',
+    finder          = finders.new_table {
       results = labels
     },
-    sorter = sorters.get_generic_fuzzy_sorter(),
+    sorter          = sorters.get_generic_fuzzy_sorter(),
     attach_mappings = function(prompt_bufnr, map)
       local function start_task()
         start_task_direction('current', prompt_bufnr, map, sorted_history)
@@ -239,7 +248,7 @@ local function tasks(opts)
     return
   end
 
-  local  tasks_formatted = {}
+  local tasks_formatted = {}
 
   for i = 1, #task_list do
     local current_task = task_list[i]["label"]
@@ -247,13 +256,12 @@ local function tasks(opts)
   end
 
   pickers.new(opts, {
-    prompt_title = 'Tasks',
-    finder    = finders.new_table {
+    prompt_title    = 'Tasks',
+    finder          = finders.new_table {
       results = tasks_formatted
     },
-    sorter = sorters.get_generic_fuzzy_sorter(),
+    sorter          = sorters.get_generic_fuzzy_sorter(),
     attach_mappings = function(prompt_bufnr, map)
-
       local start_task = function()
         start_task_direction('current', prompt_bufnr, map, task_list)
       end
@@ -295,7 +303,7 @@ local function launches(opts)
     return
   end
 
-  local  launch_formatted = {}
+  local launch_formatted = {}
 
   for i = 1, #launch_list do
     local current_launch = launch_list[i]["name"]
@@ -303,13 +311,12 @@ local function launches(opts)
   end
 
   pickers.new(opts, {
-    prompt_title = 'Launches',
-    finder    = finders.new_table {
+    prompt_title    = 'Launches',
+    finder          = finders.new_table {
       results = launch_formatted
     },
-    sorter = sorters.get_generic_fuzzy_sorter(),
+    sorter          = sorters.get_generic_fuzzy_sorter(),
     attach_mappings = function(prompt_bufnr, map)
-
       local start_task = function()
         start_launch_direction('current', prompt_bufnr, map, launch_list)
       end

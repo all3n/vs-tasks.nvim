@@ -3,10 +3,16 @@
 -- @param delimiter substring to split on
 function Split(s, delimiter)
   local result = {};
-  for match in (s..delimiter):gmatch("(.-)"..delimiter) do
+  for match in (s .. delimiter):gmatch("(.-)" .. delimiter) do
     table.insert(result, match);
   end
   return result;
+end
+local get_abs_file = function()
+  local current_bufnr = vim.api.nvim_get_current_buf()
+  local current_file = vim.api.nvim_buf_get_name(current_bufnr)
+  local absolute_path = vim.fn.expand(current_file)
+  return absolute_path
 end
 
 local get_relative_file = function()
@@ -43,39 +49,39 @@ end
 local get_current_file_basename_no_extension = function()
   local sep = get_path_seperator()
   local path = get_relative_file() -- get the path
-  local split = Split(path, sep) -- split on /
-  local filename = split[#split] -- get the filename
-  split = Split(filename, ".") -- split on .
-  table.remove(split, #split) -- remove extension
-  return table.concat(split, ".") -- join back together
+  local split = Split(path, sep)   -- split on /
+  local filename = split[#split]   -- get the filename
+  split = Split(filename, ".")     -- split on .
+  table.remove(split, #split)      -- remove extension
+  return table.concat(split, ".")  -- join back together
 end
 
 -- get the current opened files base name
 local get_current_file_basename = function()
   local sep = get_path_seperator()
   local path = get_relative_file() -- get the path
-  local split = Split(path, sep) -- split on /
-  local filename = split[#split] -- get the filename
+  local split = Split(path, sep)   -- split on /
+  local filename = split[#split]   -- get the filename
   return filename
 end
 
 -- get current opened files dirname
 local get_current_file_dirname = function()
   local sep = get_path_seperator()
-  local path = get_relative_file() -- get the path
-  local split = Split(path, sep) -- split on /
-  table.remove(split, #split) -- remove filename
-  return table.concat(split, sep) -- join back together
+  local path = get_abs_file() -- get the path
+  local split = Split(path, sep)   -- split on /
+  table.remove(split, #split)      -- remove filename
+  return table.concat(split, sep)  -- join back together
 end
 
 -- get the current open files extension
 local get_current_file_extension = function()
   local sep = get_path_seperator()
   local path = get_relative_file() -- get the path
-  local split = Split(path, sep) -- split on /
-  local filename = split[#split] -- get the filename
-  split = Split(filename, ".") -- split on .
-  return split[#split] -- get the extension
+  local split = Split(path, sep)   -- split on /
+  local filename = split[#split]   -- get the filename
+  split = Split(filename, ".")     -- split on .
+  return split[#split]             -- get the extension
 end
 
 -- get the current working directory
@@ -101,16 +107,16 @@ end
 
 
 local get_file = function()
-  return get_filename(vim.fn.bufname())
+  return get_filename(get_abs_file())
 end
 
 -- get the file workspace folder
 local get_file_workspace_folder = function()
   local sep = get_path_seperator()
   local path = get_relative_file()
-  local split = Split(path, sep) -- split on /
-  table.remove(split, #split) -- remove filename
-  table.remove(split, #split) -- remove filename
+  local split = Split(path, sep)  -- split on /
+  table.remove(split, #split)     -- remove filename
+  table.remove(split, #split)     -- remove filename
   return table.concat(split, sep) -- join back together
 end
 
@@ -132,21 +138,20 @@ local get_relative_file_dirname = function()
 end
 
 return {
-  [ "workspaceFolder" ] = vim.fn.getcwd,
-  [ "workspaceFolderBasename" ] = get_workspacefolder_basename,
-  [ "file" ] = get_file,
-  [ "fileWorkspaceFolder" ] = get_file_workspace_folder,
-  [ "relativeFile" ] = get_relative_file,
-  [ "relativeFileDirname" ] = get_relative_file_dirname,
-  [ "fileBasename" ] = get_current_file_basename,
-  [ "fileBasenameNoExtension" ] = get_current_file_basename_no_extension,
-  [ "fileDirname" ] = get_current_file_dirname,
-  [ "fileExtname" ] = get_current_file_extension,
-  [ "cwd" ] = get_current_dir,
-  [ "lineNumber" ] = get_current_line_number,
-  [ "selectedText" ] = get_selected_text,
-  [ "execPath" ] = get_exec_path,
-  [ "defaultBuildTask" ] = nil,
-  [ "pathSeparator" ] = get_path_seperator
+  ["workspaceFolder"] = vim.fn.getcwd,
+  ["workspaceFolderBasename"] = get_workspacefolder_basename,
+  ["file"] = get_file,
+  ["fileWorkspaceFolder"] = get_file_workspace_folder,
+  ["relativeFile"] = get_relative_file,
+  ["relativeFileDirname"] = get_relative_file_dirname,
+  ["fileBasename"] = get_current_file_basename,
+  ["fileBasenameNoExtension"] = get_current_file_basename_no_extension,
+  ["fileDirname"] = get_current_file_dirname,
+  ["fileExtname"] = get_current_file_extension,
+  ["cwd"] = get_current_dir,
+  ["lineNumber"] = get_current_line_number,
+  ["selectedText"] = get_selected_text,
+  -- ["execPath"] = get_exec_path,
+  ["defaultBuildTask"] = nil,
+  ["pathSeparator"] = get_path_seperator
 }
-
