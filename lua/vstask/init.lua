@@ -36,5 +36,6 @@ function M.setup(opts)
 end
 
 M.get_last = M.Telescope.Get_last
+M.run_last = M.Telescope.Run_last
 
 return M

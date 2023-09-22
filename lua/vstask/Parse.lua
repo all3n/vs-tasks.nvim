@@ -190,6 +190,16 @@ local function get_tasks()
   task_cache = create_cache(task_list, "label")
   return task_list
 end
+local function get_task_idx_by_name(name)
+  local tasks = get_tasks()
+  for idx, task in ipairs(tasks) do
+    -- vim.notify(vim.inspect(task))
+    if task.label == name then
+      return idx
+    end
+  end
+  return nil
+end
 
 local function used_task(label)
   update_cache(task_cache, label)
@@ -334,5 +344,6 @@ return {
   Cache_strategy = set_cache_strategy,
   Set_autodetect = set_autodetect,
   Set_cache_json_conf = set_cache_json_conf,
-  Set_config_dir = set_config_dir
+  Set_config_dir = set_config_dir,
+  Get_task_idx_by_name = get_task_idx_by_name
 }

@@ -1,19 +1,22 @@
-local actions         = require('telescope.actions')
-local state           = require('telescope.actions.state')
-local finders         = require('telescope.finders')
-local pickers         = require('telescope.pickers')
-local sorters         = require('telescope.sorters')
-local Parse           = require('vstask.Parse')
-local Opts            = require('vstask.Opts')
-local Command_handler = nil
-local Mappings        = {
+local actions              = require('telescope.actions')
+local state                = require('telescope.actions.state')
+local finders              = require('telescope.finders')
+local pickers              = require('telescope.pickers')
+local sorters              = require('telescope.sorters')
+local Parse                = require('vstask.Parse')
+local Opts                 = require('vstask.Opts')
+local Command_handler      = nil
+local start_task_direction = nil
+local Mappings             = {
   vertical = '<C-v>',
   split = '<C-p>',
   tab = '<C-t>',
   current = '<CR>'
 }
+local M                    = {}
+local preIdx               = nil
 
-local command_history = {}
+local command_history      = {}
 local function set_history(label, command, options)
   if not command_history[label] then
     command_history[label] = {
@@ -28,7 +31,7 @@ local function set_history(label, command, options)
   Parse.Used_task(label)
 end
 
-local last_cmd = nil
+local last_opts = {}
 local Term_opts = {}
 
 local function set_term_opts(new_opts)
@@ -36,8 +39,10 @@ local function set_term_opts(new_opts)
 end
 
 local function get_last()
-  return last_cmd
+  return last_opts
 end
+
+
 
 local function format_command(pre, options)
   local command = pre
@@ -78,8 +83,20 @@ local function set_mappings(new_mappings)
 end
 
 
-local process_command = function(command, direction, opts)
-  last_cmd = command
+local process_command = function(command, direction, opts, label, preLaunchTask)
+  if preLaunchTask then
+    preIdx = Parse.Get_task_idx_by_name(preLaunchTask)
+    -- vim.notify("preIdx:" .. vim.inspect(preIdx))
+    if preIdx ~= nil then
+      -- vim.notify("RUN preLaunchTask:" .. preLaunchTask .. " idx=" .. preIdx)
+      start_task_direction(direction, nil, nil, Parse.Tasks())
+    end
+  end
+  last_opts['command'] = command
+  last_opts['direction'] = direction
+  last_opts['opts'] = opts
+  last_opts['label'] = label
+
   if Command_handler ~= nil then
     Command_handler(command, direction, opts)
   else
@@ -100,6 +117,17 @@ local process_command = function(command, direction, opts)
     vim.cmd(
       string.format('terminal echo "%s" && %s', command, command)
     )
+  end
+end
+
+local function run_last(opt)
+  if opt then
+    return process_command(opt['command'], opt['direction'], opt['opts'], opt['label'])
+  elseif last_opts then
+    opt = last_opts
+    return process_command(opt['command'], opt['direction'], opt['opts'], opt['label'])
+  else
+    vim.notify("no last run")
   end
 end
 
@@ -161,6 +189,7 @@ local function start_launch_direction(direction, prompt_bufnr, _, selection_list
   local options = selection_list[selection.index]["options"]
   local label = selection_list[selection.index]["name"]
   local args = selection_list[selection.index]["args"]
+  local preLaunchTask = selection_list[selection.index]["preLaunchTask"]
   for i, element in ipairs(args) do
     args[i] = Parse.replace(element)
   end
@@ -168,17 +197,23 @@ local function start_launch_direction(direction, prompt_bufnr, _, selection_list
   Parse.Used_launch(label)
   local formatted_command = format_command(command, options)
   local built = Parse.Build_launch(formatted_command.command, args)
-  process_command(built, direction, Term_opts)
+  process_command(built, direction, Term_opts, 'Launch:' .. label, preLaunchTask)
 end
 
-local function start_task_direction(direction, promp_bufnr, _, selection_list)
-  local selection = state.get_selected_entry(promp_bufnr)
-  actions.close(promp_bufnr)
+start_task_direction = function(direction, promp_bufnr, _, selection_list)
+  local select_idx = -1
+  if promp_bufnr then
+    local selection = state.get_selected_entry(promp_bufnr)
+    actions.close(promp_bufnr)
+    select_idx = selection.index
+  else
+    select_idx = preIdx
+  end
 
-  local command = selection_list[selection.index]["command"]
-  local options = selection_list[selection.index]["options"]
-  local label = selection_list[selection.index]["label"]
-  local args = selection_list[selection.index]["args"]
+  local command = selection_list[select_idx]["command"]
+  local options = selection_list[select_idx]["options"]
+  local label = selection_list[select_idx]["label"]
+  local args = selection_list[select_idx]["args"]
   for i, element in ipairs(args) do
     args[i] = Parse.replace(element)
   end
@@ -187,7 +222,7 @@ local function start_task_direction(direction, promp_bufnr, _, selection_list)
   if (args ~= nil) then
     formatted_command.command = Parse.Build_launch(formatted_command.command, args)
   end
-  process_command(formatted_command.command, direction, Term_opts)
+  process_command(formatted_command.command, direction, Term_opts, 'Task:' .. label, nil)
 end
 
 local function history(opts)
@@ -360,4 +395,5 @@ return {
   Set_mappings = set_mappings,
   Set_term_opts = set_term_opts,
   Get_last = get_last,
+  Run_last = run_last
 }

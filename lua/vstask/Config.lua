@@ -26,6 +26,7 @@ local json_decode = function(data)
   if ok then
     return result
   else
+    vim.notify("json parse fail:" .. result)
     return nil, result
   end
 end
