@@ -4,6 +4,7 @@ local Predefined = require('vstask.Predefined')
 
 local cache_json_conf = true
 
+
 local function set_cache_json_conf(value)
   cache_json_conf = value
 end

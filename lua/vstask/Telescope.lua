@@ -48,8 +48,10 @@ local function format_command(pre, options)
       command = string.format("%s && %s", cd_command, command)
     end
   end
-  for k, v in pairs(options) do
-    options[k] = Parse.replace(v)
+  if options then
+    for k, v in pairs(options) do
+      options[k] = Parse.replace(v)
+    end
   end
   command = Parse.replace(command)
   return {
