@@ -1,6 +1,6 @@
 local InUse = {}
 
-function Harpoon_process(command)
+function Harpoon_process(cwd, command)
     if InUse[command] == nil then
       InUse[command] = #InUse + 1
     end

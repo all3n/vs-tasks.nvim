@@ -1,5 +1,5 @@
-local Opts     = require('vstask.Opts')
-local function ToggleTerm_process(command, direction, opts)
+local Opts = require('vstask.Opts')
+local function ToggleTerm_process(cwd, command, direction, opts)
   local size = Opts.get_size(direction, opts)
   if size ~= nil then
     size = " size=" .. size
@@ -12,7 +12,11 @@ local function ToggleTerm_process(command, direction, opts)
   else
     opt_direction = ' direction=' .. opt_direction
   end
-  vim.cmd("ToggleTerm " .. size .. opt_direction)
+  local options = ''
+  if cwd then
+    options = options .. " dir=" .. cwd
+  end
+  vim.cmd("ToggleTerm " .. size .. opt_direction .. options)
   vim.cmd([[TermExec ]] .. size .. [[ cmd="]] .. command .. [["]])
 end
 

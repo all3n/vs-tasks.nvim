@@ -46,12 +46,15 @@ end
 
 local function format_command(pre, options)
   local command = pre
+  local cwd
   if nil ~= options then
-    local cwd = options["cwd"]
-    if nil ~= cwd then
-      local cd_command = string.format("cd %s", cwd)
-      command = string.format("%s && %s", cd_command, command)
-    end
+    cwd = options["cwd"]
+    -- if nil ~= cwd then
+    --   local cd_command = string.format("cd %s", cwd)
+    --   command = string.format("%s && %s", cd_command, command)
+    -- end
+  else
+    cwd = vim.fn.getcwd()
   end
   if options then
     for k, v in pairs(options) do
@@ -62,7 +65,8 @@ local function format_command(pre, options)
   return {
     pre = pre,
     command = command,
-    options = options
+    options = options,
+    cwd = cwd
   }
 end
 
@@ -83,22 +87,22 @@ local function set_mappings(new_mappings)
 end
 
 
-local process_command = function(command, direction, opts, label, preLaunchTask)
+local process_command = function(cwd, command, direction, opts, label, preLaunchTask)
   if preLaunchTask then
     preIdx = Parse.Get_task_idx_by_name(preLaunchTask)
-    -- vim.notify("preIdx:" .. vim.inspect(preIdx))
     if preIdx ~= nil then
-      -- vim.notify("RUN preLaunchTask:" .. preLaunchTask .. " idx=" .. preIdx)
       start_task_direction(direction, nil, nil, Parse.Tasks())
     end
   end
   last_opts['command'] = command
   last_opts['direction'] = direction
   last_opts['opts'] = opts
+  last_opts['cwd'] = cwd
   last_opts['label'] = label
+  last_opts['preLaunchTask'] = preLaunchTask
 
   if Command_handler ~= nil then
-    Command_handler(command, direction, opts)
+    Command_handler(cwd, command, direction, opts)
   else
     local opt_direction = Opts.get_direction(direction, opts)
     local size = Opts.get_size(direction, opts)
@@ -122,10 +126,10 @@ end
 
 local function run_last(opt)
   if opt then
-    return process_command(opt['command'], opt['direction'], opt['opts'], opt['label'])
+    return process_command(opt['cwd'], opt['command'], opt['direction'], opt['opts'], opt['label'], opt['preLaunchTask'])
   elseif last_opts then
     opt = last_opts
-    return process_command(opt['command'], opt['direction'], opt['opts'], opt['label'])
+    return process_command(opt['cwd'], opt['command'], opt['direction'], opt['opts'], opt['label'], opt['preLaunchTask'])
   else
     vim.notify("no last run")
   end
@@ -197,7 +201,7 @@ local function start_launch_direction(direction, prompt_bufnr, _, selection_list
   Parse.Used_launch(label)
   local formatted_command = format_command(command, options)
   local built = Parse.Build_launch(formatted_command.command, args)
-  process_command(built, direction, Term_opts, 'Launch:' .. label, preLaunchTask)
+  process_command(formatted_command.cwd, built, direction, Term_opts, 'Launch:' .. label, preLaunchTask)
 end
 
 start_task_direction = function(direction, promp_bufnr, _, selection_list)
@@ -222,7 +226,7 @@ start_task_direction = function(direction, promp_bufnr, _, selection_list)
   if (args ~= nil) then
     formatted_command.command = Parse.Build_launch(formatted_command.command, args)
   end
-  process_command(formatted_command.command, direction, Term_opts, 'Task:' .. label, nil)
+  process_command(formatted_command.cwd, formatted_command.command, direction, Term_opts, 'Task:' .. label, nil)
 end
 
 local function history(opts)
